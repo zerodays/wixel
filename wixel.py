@@ -18,6 +18,7 @@ app = Flask(__name__)
 pixels = neopixel.NeoPixel(DATA_PIN, NUMBER_OF_LED, auto_write=False)
 
 fading = False
+after_fade = None
 
 
 @app.route(API_PREFIX + '/wix_enabled', methods=['GET'])
@@ -39,39 +40,50 @@ def get_strip():
 
 @app.route(API_PREFIX + '/strip', methods=['POST'])
 def set_strip():
+    global after_fade
+
+    def set_led(state):
+        for i in range(NUMBER_OF_LED):
+            if SWITCHED_GB:
+                pixels[i] = (state[i][0], state[i][2], state[i][1])
+            else:
+                pixels[i] = state[i]
+
+        pixels.show()
+
+    state = request.get_json()
     if fading:
-        return ''
-
-    req = request.get_json()
-    length = min(len(req), len(pixels))
-    for i in range(length):
-        if SWITCHED_GB:
-            pixels[i] = (req[i][0], req[i][2], req[i][1])
-        else:
-            pixels[i] = req[i]
-
-    pixels.show()
+        after_fade = lambda: set_led(state)
+    else:
+        set_led(state)
 
     return ''
 
 
 @app.route(API_PREFIX + '/fade', methods=['POST'])
 def fade():
-    global fading
+    global fading, after_fade
     if fading:
         return ''
 
-    fading = True
+    def exec_fade(seconds, end_state):
+        global fading
+        fading = True
+
+        t = threading.Thread(target=fade_to, args=(seconds, end_state,))
+        t.start()
 
     req = request.get_json()
     seconds = req['seconds']
-    end_state = req['led'][:min(len(req['led']), len(pixels))]
+    end_state = req['led']
     if SWITCHED_GB:
         for i in range(len(end_state)):
             end_state[i][1], end_state[i][2] = end_state[i][2], end_state[i][1]
 
-    t = threading.Thread(target=fade_to, args=(seconds, end_state,))
-    t.start()
+    if fading:
+        after_fade = lambda: exec_fade(seconds, end_state)
+    else:
+        exec_fade(seconds, end_state)
 
     return ''
 
@@ -113,6 +125,9 @@ def fade_to(seconds, end_state):
     pixels.show()
 
     fading = False
+
+    if after_fade is not None:
+        after_fade()
 
 
 if __name__ == '__main__':
