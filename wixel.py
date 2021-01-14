@@ -1,6 +1,10 @@
+import threading
+import time
+
 import board
 import neopixel
 from flask import Flask, jsonify, request
+from datetime import datetime, timedelta
 
 # Constants
 PORT = 6969  # Port of HTTP server
@@ -35,6 +39,44 @@ def set_strip():
         pixels[i] = req[i]
 
     return ''
+
+
+@app.route(API_PREFIX + '/fade', methods=['POST'])
+def fade():
+    req = request.get_json()
+    seconds = req['seconds']
+    end_state = req['led'][:min(len(req['led']), len(pixels))]
+
+    t = threading.Thread(target=fade_to, args=(seconds, end_state,))
+    t.start()
+
+    return ''
+
+
+def fade_to(seconds, end_state):
+    start_state = [(0, 0, 0)] * NUMBER_OF_LED
+    for i in range(NUMBER_OF_LED):
+        start_state[i] = pixels[i]
+
+    start = datetime.now()
+    end = start + timedelta(seconds=seconds)
+    dt = (1 / 60) * 1000
+
+    while datetime.now() < end:
+        now = datetime.now()
+        delta = (now - start).microseconds
+        progress = delta / (seconds * 1000)
+
+        for i in range(NUMBER_OF_LED):
+            r = start_state[i][0] * (1 - progress) + end_state[i][0] * progress
+            g = start_state[i][1] * (1 - progress) + end_state[i][1] * progress
+            b = start_state[i][2] * (1 - progress) + end_state[i][2] * progress
+            pixels[i] = (r, g, b)
+
+        delta = (datetime.now() - now).microseconds
+        diff = dt - delta
+        if diff > 0:
+            time.sleep(diff / 1000)
 
 
 if __name__ == '__main__':
