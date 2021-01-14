@@ -1,10 +1,10 @@
 import threading
 import time
-
+from datetime import datetime, timedelta
+import uuid
 import board
 import neopixel
 from flask import Flask, jsonify, request
-from datetime import datetime, timedelta
 
 # Constants
 PORT = 6969  # Port of HTTP server
@@ -16,6 +16,9 @@ API_PREFIX = '/api/v1'  # prefix for api urls
 app = Flask(__name__)
 
 pixels = neopixel.NeoPixel(DATA_PIN, NUMBER_OF_LED, auto_write=False)
+
+fade_thread_id = None
+fade_thread_id_lock = threading.Lock()
 
 
 @app.route(API_PREFIX + '/wix_enabled', methods=['GET'])
@@ -37,6 +40,11 @@ def get_strip():
 
 @app.route(API_PREFIX + '/strip', methods=['POST'])
 def set_strip():
+    global fade_thread_id
+    fade_thread_id_lock.acquire()
+    fade_thread_id = None
+    fade_thread_id_lock.release()
+
     req = request.get_json()
     length = min(len(req), len(pixels))
     for i in range(length):
@@ -52,6 +60,8 @@ def set_strip():
 
 @app.route(API_PREFIX + '/fade', methods=['POST'])
 def fade():
+    global fade_thread_id
+
     req = request.get_json()
     seconds = req['seconds']
     end_state = req['led'][:min(len(req['led']), len(pixels))]
@@ -59,13 +69,21 @@ def fade():
         for i in range(len(end_state)):
             end_state[i][1], end_state[i][2] = end_state[i][2], end_state[i][1]
 
-    t = threading.Thread(target=fade_to, args=(seconds, end_state,))
+    thread_id = str(uuid.uuid4())
+
+    fade_thread_id_lock.acquire()
+    fade_thread_id = thread_id
+    fade_thread_id_lock.release()
+
+    t = threading.Thread(target=fade_to, args=(seconds, end_state, thread_id,))
     t.start()
 
     return ''
 
 
-def fade_to(seconds, end_state):
+def fade_to(seconds, end_state, thread_id):
+    global fade_thread_id
+
     start_state = [(0, 0, 0)] * NUMBER_OF_LED
     for i in range(NUMBER_OF_LED):
         start_state[i] = pixels[i]
@@ -75,6 +93,12 @@ def fade_to(seconds, end_state):
     dt = 1 / 100
 
     while datetime.now() < end:
+        fade_thread_id_lock.acquire()
+        if thread_id != fade_thread_id:
+            fade_thread_id_lock.release()
+            return
+        fade_thread_id_lock.release()
+
         now = datetime.now()
         delta = (now - start).total_seconds()
         progress = delta / seconds
@@ -98,6 +122,10 @@ def fade_to(seconds, end_state):
         b = end_state[i][2]
         pixels[i] = (int(r), int(g), int(b))
     pixels.show()
+
+    fade_thread_id_lock.acquire()
+    fade_thread_id = None
+    fade_thread_id_lock.release()
 
 
 if __name__ == '__main__':
