@@ -60,20 +60,20 @@ def fade_to(seconds, end_state):
 
     start = datetime.now()
     end = start + timedelta(seconds=seconds)
-    dt = (1 / 60) * 1000
+    dt = 1 / 60
 
     while datetime.now() < end:
         now = datetime.now()
-        delta = (now - start).microseconds
-        progress = delta / (seconds * 1000)
+        delta = (now - start).total_seconds()
+        progress = delta / seconds
 
         for i in range(NUMBER_OF_LED):
             r = start_state[i][0] * (1 - progress) + end_state[i][0] * progress
             g = start_state[i][1] * (1 - progress) + end_state[i][1] * progress
             b = start_state[i][2] * (1 - progress) + end_state[i][2] * progress
-            pixels[i] = (r, g, b)
+            pixels[i] = (int(r), int(g), int(b))
 
-        delta = (datetime.now() - now).microseconds
+        delta = (datetime.now() - now).total_seconds()
         diff = dt - delta
         if diff > 0:
             time.sleep(diff / 1000)
