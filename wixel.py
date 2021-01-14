@@ -88,6 +88,12 @@ def fade_to(seconds, end_state):
         if diff > 0:
             time.sleep(diff)
 
+    for i in range(NUMBER_OF_LED):
+        r = end_state[i][0]
+        g = end_state[i][1]
+        b = end_state[i][2]
+        pixels[i] = (int(r), int(g), int(b))
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=PORT, debug=False)
