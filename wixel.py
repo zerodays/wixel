@@ -10,12 +10,12 @@ from datetime import datetime, timedelta
 PORT = 6969  # Port of HTTP server
 NUMBER_OF_LED = 100  # Number of LEDs in the strip
 DATA_PIN = board.D18  # Data pin on raspberry. Do not forget to uncomment it.
+PIXEL_ORDER = neopixel.GRB  # set for correct order.
 API_PREFIX = '/api/v1'  # prefix for api urls
-GB_SWITCHED = True  # Is green and blue position switched
 
 app = Flask(__name__)
 
-pixels = neopixel.NeoPixel(DATA_PIN, NUMBER_OF_LED, auto_write=False)
+pixels = neopixel.NeoPixel(DATA_PIN, NUMBER_OF_LED, auto_write=False, pixel_order=PIXEL_ORDER)
 
 
 @app.route(API_PREFIX + '/wix_enabled', methods=['GET'])
@@ -27,10 +27,7 @@ def is_wix_enabled():
 def get_strip():
     state = [(0, 0, 0)] * NUMBER_OF_LED
     for i in range(NUMBER_OF_LED):
-        if GB_SWITCHED:
-            state[i] = (pixels[i][0], pixels[i][2], pixels[i][1])
-        else:
-            state[i] = pixels[i]
+        state[i] = pixels[i]
 
     return jsonify(state)
 
@@ -40,10 +37,7 @@ def set_strip():
     req = request.get_json()
     length = min(len(req), len(pixels))
     for i in range(length):
-        if GB_SWITCHED:
-            pixels[i] = (req[i][0], req[i][2], req[i][1])
-        else:
-            pixels[i] = req[i]
+        pixels[i] = req[i]
     pixels.show()
 
     return ''
@@ -54,9 +48,6 @@ def fade():
     req = request.get_json()
     seconds = req['seconds']
     end_state = req['led'][:min(len(req['led']), len(pixels))]
-    if GB_SWITCHED:
-        for i in range(len(end_state)):
-            end_state[i][1], end_state[i][2] = end_state[i][2], end_state[i][1]
 
     t = threading.Thread(target=fade_to, args=(seconds, end_state,))
     t.start()
