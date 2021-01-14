@@ -43,6 +43,8 @@ def set_strip():
     global after_fade
 
     def set_led(state):
+        global after_fade
+
         for i in range(NUMBER_OF_LED):
             if SWITCHED_GB:
                 pixels[i] = (state[i][0], state[i][2], state[i][1])
@@ -89,7 +91,7 @@ def fade():
 
 
 def fade_to(seconds, end_state):
-    global fading
+    global fading, after_fade
 
     start_state = [(0, 0, 0)] * NUMBER_OF_LED
     for i in range(NUMBER_OF_LED):
@@ -128,6 +130,7 @@ def fade_to(seconds, end_state):
 
     if after_fade is not None:
         after_fade()
+        after_fade = None
 
 
 if __name__ == '__main__':
