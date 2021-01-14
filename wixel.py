@@ -12,6 +12,7 @@ NUMBER_OF_LED = 100  # Number of LEDs in the strip
 DATA_PIN = board.D18  # Data pin on raspberry. Do not forget to uncomment it.
 SWITCHED_GB = True  # Are green and blue switched.
 API_PREFIX = '/api/v1'  # prefix for api urls
+DEVICE_NAME = 'polzek'
 
 app = Flask(__name__)
 
@@ -23,7 +24,9 @@ after_fade = None
 
 @app.route(API_PREFIX + '/wix_enabled', methods=['GET'])
 def is_wix_enabled():
-    return jsonify(True)
+    return {
+        'device_name': DEVICE_NAME
+    }
 
 
 @app.route(API_PREFIX + '/strip', methods=['GET'])
