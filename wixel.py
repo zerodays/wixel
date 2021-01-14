@@ -20,7 +20,11 @@ def is_wix_enabled():
 
 @app.route(API_PREFIX + '/strip', methods=['GET'])
 def get_strip():
-    return jsonify(pixels)
+    state = [(0, 0, 0)] * NUMBER_OF_LED
+    for i in range(NUMBER_OF_LED):
+        state[i] = pixels[i]
+
+    return jsonify(state)
 
 
 @app.route(API_PREFIX + '/strip', methods=['POST'])
