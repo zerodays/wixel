@@ -15,7 +15,7 @@ GB_SWITCHED = True  # Is green and blue position switched
 
 app = Flask(__name__)
 
-pixels = neopixel.NeoPixel(DATA_PIN, NUMBER_OF_LED)
+pixels = neopixel.NeoPixel(DATA_PIN, NUMBER_OF_LED, auto_write=False)
 
 
 @app.route(API_PREFIX + '/wix_enabled', methods=['GET'])
@@ -44,6 +44,7 @@ def set_strip():
             pixels[i] = (req[i][0], req[i][2], req[i][1])
         else:
             pixels[i] = req[i]
+    pixels.show()
 
     return ''
 
@@ -83,6 +84,8 @@ def fade_to(seconds, end_state):
             b = start_state[i][2] * (1 - progress) + end_state[i][2] * progress
             pixels[i] = (int(r), int(g), int(b))
 
+        pixels.show()
+
         delta = (datetime.now() - now).total_seconds()
         diff = dt - delta
         if diff > 0:
@@ -93,6 +96,7 @@ def fade_to(seconds, end_state):
         g = end_state[i][1]
         b = end_state[i][2]
         pixels[i] = (int(r), int(g), int(b))
+    pixels.show()
 
 
 if __name__ == '__main__':
