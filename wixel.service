@@ -1,0 +1,10 @@
+[Unit]
+Description=Wixel server.
+
+[Service]
+WorkingDirectory=/home/pi/wixel/
+ExecStart=/usr/bin/python3 /home/pi/wixel.py
+Restart=on-failure
+
+[Install]
+WantedBy=network.target
