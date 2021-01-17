@@ -3,7 +3,7 @@ Description=Wixel server.
 
 [Service]
 WorkingDirectory=/home/pi/wixel/
-ExecStart=/usr/bin/python3 /home/pi/wixel.py
+ExecStart=/usr/bin/python3 /home/pi/wixel/wixel.py
 Restart=on-failure
 
 [Install]
